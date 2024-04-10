@@ -41,8 +41,40 @@
           cp -r ${config.packages.reveal-js}/{plugin,dist} $out/reveal.js/
           mv talk.html $out/index.html
         '';
+
+        serve = pkgs.writers.writePython3 "serve.py" {
+	  flakeIgnore = [ "E501" ];
+	} ''
+          from http.server import HTTPServer, SimpleHTTPRequestHandler
+
+
+          class Handler(SimpleHTTPRequestHandler):
+              def do_GET(self):
+                  if self.path.startswith('/reveal.js/plugin/'):
+                      self.directory = '${config.packages.reveal-js}/plugin/'
+                      self.path = self.path.replace('/reveal.js/plugin/', "")
+                      return SimpleHTTPRequestHandler.do_GET(self)
+                  elif self.path.startswith('/reveal.js/dist/'):
+                      self.directory = '${config.packages.reveal-js}/dist/'
+                      self.path = self.path.replace('/reveal.js/dist/', "")
+                      return SimpleHTTPRequestHandler.do_GET(self)
+                  else:
+                      self.send_response(200)
+                      self.end_headers()
+                      with open('README.html', 'rb') as f:
+                          self.copyfile(f, self.wfile)
+
+
+          server = HTTPServer(("", 8080), Handler)
+          server.serve_forever()
+        '';
       };
 
+      apps = {
+	default = config.apps.serve;
+	serve.program = builtins.toString config.packages.serve;
+      };
+      
       hercules-ci.github-pages.settings.contents = config.packages.nixos-devops-talk;
     };
   };
