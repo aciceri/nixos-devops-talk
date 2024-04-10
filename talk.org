@@ -1,0 +1,16 @@
+# Local IspellDict: it
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2024 Andrea Ciceri
+
+#+OPTIONS: toc:nil reveal_width:1400 reveal_height:1000
+#+REVEAL_THEME: black
+
+#+REVEAL_PLUGINS: (math markdown notes search zoom)
+
+#+REVEAL_VERSION: 5
+
+#+Title: NixOS per DevOps
+#+Author: Andrea Ciceri
+
+* Una formula a caso
+${n! \over k!(n-k)!} = {n \choose k}$
