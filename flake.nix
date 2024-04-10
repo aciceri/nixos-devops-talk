@@ -37,9 +37,10 @@
         } ''
           cp ${./README.org} talk.org
           emacs-export.el talk.org
-	  mkdir -p $out/reveal.js
+          mkdir -p $out/reveal.js
           cp -r ${config.packages.reveal-js}/{plugin,dist} $out/reveal.js/
           mv talk.html $out/index.html
+          cp -r ${./pics} $out/pics
         '';
 
         serve = pkgs.writers.writePython3 "serve.py" {

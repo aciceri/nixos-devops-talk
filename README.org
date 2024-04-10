@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # SPDX-FileCopyrightText: 2024 Andrea Ciceri
 
-#+OPTIONS: toc:nil reveal_width:1400 reveal_height:1000
-#+REVEAL_THEME: black
+#+OPTIONS: toc:nil reveal_width:1400 reveal_height:1000 reveal_embed_local_resources:t
+#+REVEAL_THEME: serif
 
 #+REVEAL_PLUGINS: (math markdown notes search zoom)
 
@@ -13,4 +13,13 @@
 #+Author: Andrea Ciceri
 
 * Una formula a caso
+Ciao
 ${n! \over k!(n-k)!} = {n \choose k}$
+
+* Un'immagine
+[[./pics/duomo.jpg]]
+
+  
+# Local Variables:
+# eval: (progn (require 'org-re-reveal) (add-hook 'after-save-hook #'org-re-reveal-export-to-html nil t))
+# End:
