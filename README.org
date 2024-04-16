@@ -2,24 +2,566 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # SPDX-FileCopyrightText: 2024 Andrea Ciceri
 
-#+OPTIONS: toc:nil reveal_width:1400 reveal_height:1000 reveal_embed_local_resources:t
-#+REVEAL_THEME: serif
+#+OPTIONS: toc:nil reveal_width:1400 reveal_height:1000 reveal_embed_local_resources:t reveal_history:t reveal_fragmentinurl:t reveal_slide_number:c reveal_slide_number:t num:nil
 
-#+REVEAL_PLUGINS: (math markdown notes search zoom)
+#+REVEAL_THEME: black
+
+#+REVEAL_PLUGINS: (math markdown highlight notes)
 
 #+REVEAL_VERSION: 4
 
+#+REVEAL_TITLE_SLIDE: <h1>%t<h1>
+
 #+Title: NixOS per DevOps
-#+Author: Andrea Ciceri
 
-* Una formula a caso
-Ciao
-${n! \over k!(n-k)!} = {n \choose k}$
+* Contenuti
+#+ATTR_REVEAL: :frag (appear)
+- Cosa sono Nix e NixOS
+- Perche' NixOS si presta bene per fare DevOps
+- CI/CD con NixOS
+- Un caso d'uso
 
-* Un'immagine
-[[./pics/duomo.jpg]]
+** Disclaimer
+#+BEGIN_NOTES
+- La mia esperienza nel mondo DevOps in modo full-time e' iniziata 2 anni fa, e con Nix!
+- Prima facevo full stack dev, quindi ho visto tecnologie piu' tradizionali ma non sono un esperto e potrei non essere il migliore per fare confronti, pertanto provero' ad astenermi
+- cerchero' di distinguere bene tra le mie opinioni e i fatti
+- lo scopo e' fare una panoramica sulle possibilita' stuzzicando l'appetito
+- questa presentazione e' un'alpha, mi piacerebbe ricevere feedback e che possa essere integrata in futuro
+- non sono nemmeno piu' sicuro che il titolo della presentazione abbia senso
+#+END_NOTES
+#+ATTR_REVEAL: :frag (appear)
+- Ma ~x~ lo posso fare anche con ~y~!
+- Il mio approccio con Nix e' ortodosso, ma nulla vieta un'integrazione solo parziale
+- Molte opinioni personali
+- Sacrifichero' un po' precisione a favore di una migliore digeribilita'
+- Certe parti sono scarne, questa presentazione e' open source, aiutatemi a migliorarla!
 
+* Nix
+[[./pics/the-declarative-trinity.webp]]
+
+** Nix come linguaggio
+#+BEGIN_NOTES
+- il fatto che sia lazy o funzionale puro non e' cosi' fondamentale in realta' (forse e' il motivo del relativamente scarso successo negli anni, anche se la situazione sta cambiando)
+#+END_NOTES
+Nix e' un DSL funzionale lazy pensato per restituire una struttura chiamata **derivazione**
+
+** Derivazione
+#+BEGIN_NOTES
+- Quasi mai si usa direttamente ~builtins.derivations~
+- questo estratto non valuta, manca lo scope
+#+END_NOTES
+#+BEGIN_SRC nix
+stdenv.mkDerivation {
+  name = "hello";
+
+  src = ./src;
+
+  buildInputs = [ coreutils gcc ];
+
+  buildPhase = ''
+    gcc "$src/hello.c" -o ./hello
+  '';
+  installPhase = ''
+    mkdir -p "$out/bin"
+    cp ./hello "$out/bin/"
+  '';
+}
+#+END_SRC
+
+- la sintassi ricorda JSON, ma e' Turing completo! (condizioni, funzioni, etc...)
+- ~stdenv.mkDerivation~ wrappa ~builtins.derivation~
+
+#+REVEAL: split
+#+BEGIN_NOTES
+Nel linguaggio comune per derivazione si intendono almeno tre cose:
+- l'oggetto in memoria ad eval time
+- il file ~.drv~
+- l'output della derivazione
+#+END_NOTES
+Quando l'evaluator Nix valuta una derivazione crea un file ~.drv~
+
+#+BEGIN_SRC
+{
+  "/nix/store/z3hhlxbckx4g3n9sw91nnvlkjvyw754p-myname.drv": {
+    "outputs": {
+      "out": {
+        "path": "/nix/store/40s0qmrfb45vlh6610rk29ym318dswdr-myname"
+      }
+    },
+    "inputSrcs": [],
+    "inputDrvs": {},
+    "platform": "mysystem",
+    "builder": "mybuilder",
+    "args": [],
+    "env": {
+      "builder": "mybuilder",
+      "name": "myname",
+      "out": "/nix/store/40s0qmrfb45vlh6610rk29ym318dswdr-myname",
+      "system": "mysystem"
+    }
+  }
+}
+#+END_SRC
+
+#+BEGIN_NOTES
+
+#+END_NOTES
+
+** Build della derivazione
+
+#+ATTR_REVEAL: :frag (appear)
+Il file ~drv~ contiene tutte le informazioni necessarie per costruire l'output della derivazione.
+
+#+ATTR_REVEAL: :frag (appear)
+Se la derivazione dipende da altre derivazioni prima vengono buildate queste.
+
+** Input addressed vs content addressed
+
+#+ATTR_REVEAL: :frag (appear)
+*Input addresssed*: l'output della derivazione finira' in un path che contiene un hash ottenuto partendo alcune informazioni tra cui il nome, la versione, il builder e *i nomi degli input* (quindi dai loro hash).
+
+#+ATTR_REVEAL: :frag (appear)
+In questo modo e' possibile sapere l'output di una derivazione *prima di buildarla*.
+
+#+ATTR_REVEAL: :frag (appear)
+Le build avvengono in ambienti *sandboxed* senza accesso al sistema (in particolare a internet), in sostanza *dipendono solo dalle derivazioni input*.
+
+#+REVEAL: split
+Come possiamo buildare qualcosa se non possiamo scaricarne i sorgenti?
+
+#+ATTR_REVEAL: :frag (appear)
+*Fixed output*: se siamo in grado di esplicitare l'hash del contenuto nel file ~drv~ (prima che avvenga la build) allora la sandbox dove avverra' la build avra' accesso a internet (~git~, ~curl~, etc...)
+
+#+ATTR_REVEAL: :frag (appear)
+Corollario: risalendo il grafo delle dipendenze di una derivazione alla fine troveremo sempre derivazioni *fixed output*.
+
+#+ATTR_REVEAL: :frag (appear)
+Sono dette anche *content addressed*.
+
+** Demo
+
+[[https://github.com/NixOS/nixpkgs/blob/nixos-unstable/pkgs/games/umoria/default.nix]]
+
+#+BEGIN_SRC
+nix derivation show nixpkgs#umoria
+nix build nixpkgs#umoria -L --rebuild
+#+END_SRC
+
+** Nix store
+#+BEGIN_NOTES
+- Mostrare /nix/store
+- Sia file `drv` che output finiscono qui
+- lo store e' immutabile, le derivazioni una volta buildate non cambiano mai
+- lo store e' leggibile da tutti
+#+END_NOTES
+#+ATTR_REVEAL: :frag (appear)
+Dove finiscono gli output delle derivazioni?
+
+#+ATTR_REVEAL: :frag (appear)
+#+ATTR_HTML: :height 80%
+[[./pics/store.webp]]
+
+
+** Dipendenze e closure
+#+BEGIN_NOTES
+- citare garbage collector
+- copiare solo drv ed effettuare build remote
+- build distribuite
+#+END_NOTES
+
+#+ATTR_REVEAL: :frag (appear)
+Nix quindi e' in grado di gestire contemporaneamente diverse versioni delle stesse dipendenze.
+
+#+ATTR_REVEAL: :frag (appear)
+Potremo per esempio avere sullo stesso sistema versioni diverse di uno stesso software che pero' richiedono dipendenze differenti (dependency hell).
+
+#+REVEAL: split
+Data una derivazione, e' possibile considerare la chiusura rispetto alla relazione di dipendenza di tale derivazione, ovvero la *closure*.
+
+#+ATTR_REVEAL: :frag (appear)
+Pertanto possiamo copiare un programma con tutte le sue dipendenze da una macchina all'altra semplicemente copiando la closure.
+
+** Cache
+#+BEGIN_NOTES
+- citare trustix (distributed build)
+#+END_NOTES
+
+#+ATTR_REVEAL: :frag (appear)
+#+ATTR_HTML: :height 80%
+[[./pics/caches-are-fast.png]]
+
+#+ATTR_REVEAL: :frag (appear)
+Nix prima di buildare una derivazione (un file ~drv~) interroga un *substituter* (detto anche *cache*) ed eventualmente scarica l'output della derivazione.
+
+#+ATTR_REVEAL: :frag (appear)
+Cio' e' possibile poiche' gli output sono (generalmente) *input addressed*.
+
+* NixOS
+
+#+ATTR_REVEAL: :frag (appear)
+E se l'intero sistema operativo fosse l'output di una derivazione?
+
+** Caratteristiche
+
+In ordine sparso:
+
+#+ATTR_REVEAL: :frag (appear)
+- dichiarativo
+- Linux
+- usa ~systemd~
+- puo' essere rolling release (in realta' fanno release)
+
+** Module system
+#+BEGIN_NOTES
+Sono stati inventati per NixOS ma vengono usati anche all'interno di altri progetti.
+Idea vincente IMO.
+Usare solo le funzioni come astrazione quando si hanno cosi' tante opzioni (argomenti?) diventa ingestibile
+Esempio: https://github.com/NixOS/nixpkgs/tree/nixos-unstable/nixos/modules/services/continuous-integration/github-runner
+#+END_NOTES
+
+#+ATTR_REVEAL: :frag (appear)
+Nix non e' strong typed, i moduli aggiungono un type system *dentro il linguaggio stesso*.
+
+#+ATTR_REVEAL: :frag (appear)
+Sono estremamente componibili.
+
+#+REVEAL: split
+Sostanzialmente un modulo fa due cose:
+#+ATTR_REVEAL: :frag (appear)
+- dichiara opzioni (nomi, tipi, valori di esempio, valori di default, documentazione, etc...)
+- imposta altre opzioni (di altri moduli) partendo dai valori delle sue opzioni
+
+** Flakes
+#+BEGIN_NOTES
+Sono il futuro, anche se ufficialmente ancora unstable consiglio di iniziare usandoli.
+Accennare i canali.
+#+END_NOTES
+
+#+ATTR_HTML: :width 50%
+[[./pics/fleyks.png]]
+
+#+REVEAL: split
+Il linguaggio diventa veramente puro (e.g. non puo' leggere path fuori dallo store).
+
+#+ATTR_REVEAL: :frag (appear)
+Forniscono un modo unificato di dichiarare le dipendenze dei propri progetti ed interagire con essi da CLI.
+
+#+REVEAL: split
+
+Schema di un flake:
+#+BEGIN_SRC nix
+{ self, ... }@inputs:
+{
+  # Executed by `nix flake check`
+  checks."<system>"."<name>" = derivation;
+  # Executed by `nix build .#<name>`
+  packages."<system>"."<name>" = derivation;
+  # Executed by `nix build .`
+  packages."<system>".default = derivation;
+  # Executed by `nix run .#<name>`
+  apps."<system>"."<name>" = {
+    type = "app";
+    program = "<store-path>";
+  };
+  # Executed by `nix run . -- <args?>`
+  apps."<system>".default = { type = "app"; program = "..."; };
+
+  # Formatter (alejandra, nixfmt or nixpkgs-fmt)
+  formatter."<system>" = derivation;
+  # Used for nixpkgs packages, also accessible via `nix build .#<name>`
+  legacyPackages."<system>"."<name>" = derivation;
+  # Overlay, consumed by other flakes
+  overlays."<name>" = final: prev: { };
+  # Default overlay
+  overlays.default = final: prev: { };
+  # Nixos module, consumed by other flakes
+  nixosModules."<name>" = { config, ... }: { options = {}; config = {}; };
+  # Default module
+  nixosModules.default = { config, ... }: { options = {}; config = {}; };
+  # Used with `nixos-rebuild switch --flake .#<hostname>`
+  # nixosConfigurations."<hostname>".config.system.build.toplevel must be a derivation
+  nixosConfigurations."<hostname>" = {};
+  # Used by `nix develop .#<name>`
+  devShells."<system>"."<name>" = derivation;
+  # Used by `nix develop`
+  devShells."<system>".default = derivation;
+  # Hydra build jobs
+  hydraJobs."<attr>"."<system>" = derivation;
+  # Used by `nix flake init -t <flake>#<name>`
+  templates."<name>" = {
+    path = "<store-path>";
+    description = "template description goes here?";
+  };
+  # Used by `nix flake init -t <flake>`
+  templates.default = { path = "<store-path>"; description = ""; };
+}
+#+END_SRC
+
+** nixpkgs
+
+Contiene sia pacchetti (derivazioni) che moduli di NixOS.
+
+[[https://github.com/nixos/nixpkgs]]
+
+https://repology.org/repositories/graphs
+
+https://search.nixos.org/
+
+
+* Deploy
+
+#+ATTR_REVEAL: :frag (appear)
+~nixos-rebuild~ in realta' permette anche il deploy remoto.
+
+#+ATTR_REVEAL: :frag (appear)
+#+BEGIN_SRC
+nixos-rebuild switch --flake github:aciceri/nixfleet#kirk --target-host X.X.X.X --build-host Y.Y.Y.Y
+#+END_SRC
+
+#+REVEAL: split
+
+Esistono numeri altri tool:
+- ~nixops~
+- ~colmena~
+- ~deploy-rs~
+- altri
   
+#+REVEAL: split
+
+E se volessimo generare immagini per provider cloud specifici?
+
+#+ATTR_REVEAL: :frag (appear)
+- AWS
+- Google Cloud
+- Azure
+- molti altri
+
+#+ATTR_REVEAL: :frag (appear)
+https://github.com/nix-community/nixos-generators
+
+
+* Cosa non risolve Nix(OS)
+
+#+ATTR_REVEAL: :frag (appear)
+Niente.
+
+#+ATTR_REVEAL: :frag (appear)
+Dico davvero.
+
+#+ATTR_REVEAL: :frag (appear)
+Ok, quasi niente.
+
+#+REVEAL: split
+
+NixOS non e':
+#+ATTR_REVEAL: :frag (appear)
+- Terraform 
+- Kubernetes
+- ???
+
+* CI/CD
+
+#+ATTR_REVEAL: :frag (appear)
+Se i progetti su cui lavorano gli sviluppatori sono flake, la CI puo' semplicmente buildare un sottoinsieme dei suoi output (~packages~, ~checks~, ~devShells~, etc...).
+*I progetti non richiedono nessuna configurazione ad hoc per abilitare la CI*.
+
+#+ATTR_REVEAL: :frag (appear)
+Se lo store del sistema di CI persiste avremo build molto veloci. Altrimenti e' possibile istruire la CI a pushare cio' che builda su una cache (e interrogarla prima di buildare).
+
+#+ATTR_REVEAL: :frag (appear)
+Se esponiamo questa cache agli sviluppatori minimizzeremo di molto il tempo di build in locale.
+
+#+REVEAL: split
+
+#+BEGIN_NOTES
+Citare cachix - cache as a service
+Citare la mia CI
+Osservare come il deploy remote da CI puo' anche prevedere che la build avvenga sulla macchina remota (per esempio se la macchina che esegue la CI e' poco potente)
+#+END_NOTES
+
+Esistono diverse soluzioni:
+
+#+ATTR_REVEAL: :frag (appear)
+- GitHub actions (esistono actions per installare Nix e configurarlo per usare una cache)
+- Hydra (CI ufficiale di nixpkgs, compatibile con diverse forgie)
+- Hercules CI
+- molti altri...
+#+REVEAL: split
+
+Il continuous deployment viene facile, basta eseguire uno dei tool visti prima in CI.
+
+#+ATTR_REVEAL: :frag (appear)
+Esistono soluzioni piu' strutturate per gestire il deploy di sistemi multipli (come Hercules CI).
+
+#+ATTR_REVEAL: :frag (appear)
+Alternativamente si puo' anche istruire il sistema stesso ad aggiornarsi da solo:
+
+#+ATTR_REVEAL: :frag (appear)
+#+BEGIN_SRC nix
+system.autoUpgrade = {
+  enable = true;
+  flake = "github:aciceri/nixfleet#${config.networking.hostName}";
+  dates = "daily";
+  allowReboot = false;
+};
+#+END_SRC
+
+* Chicche
+
+#+ATTR_REVEAL: :frag (appear)
+
+** Cross-compilazione
+#+BEGIN_NOTES
+Molti provider oggigiorno offrono host in cloud ARM, e sono piu' economici!
+Ah comunque Nix supporta svariate architetture, tra cui anche darwin (x86 e ARM).
+
+Nella definizione delle derivazioni non appare `gcc`, bensi' la variabile `$CC`
+
+nix build nixpkgs#legacyPackages.x86_64-linux.pkgsCross.riscv64.hello -L --rebuild
+nix build nixpkgs#legacyPackages.aarch64-linux.hello -L
+#+END_NOTES
+
+Nix permette di "cross-buildare" le derivazioni in due modi diversi, e funzionano entrambi molto bene.
+#+ATTR_REVEAL: :frag (appear)
+- vera cross-compilazione
+- ~binfmt~ (QEMU)
+
+** Docker
+
+Nix e' probabilmente un migliore build system per Docker di Docker stesso.
+
+#+ATTR_REVEAL: :frag (appear)
+- miglior caching (no "layering lineare")
+- vera riproducibilita'
+- le immagini Docker non sono altro che derivazioni Nix
+- accesso a tutto nixpkgs (quantita' spropositata di pacchetti)
+- cross-building migliore (~docker buildx~ 🤮)
+#+REVEAL: split
+
+** Segreti
+#+BEGIN_NOTES
+Soluzione banale: integrare qualcosa che copi i segreti nel nostro sistema di deploy.
+Ma noi vogliamo evitare che lo stato del nostro sistema dipenda dallo stato di qualcosa di esterno, sarebbe bello se la derivazione del sistema dipendesse anche dai segreti.
+#+END_NOTES
+
+#+ATTR_HTML: :width 50%
+[[./pics/segreto.png]]
+
+#+REVEAL: split
+Come possiamo avere segreti se le derivazioni nello store sono leggibili da tutti?
+
+#+ATTR_REVEAL: :frag (appear)
+Criptiamoli!
+#+ATTR_REVEAL: :frag (appear)
+- ~agenix~
+- ~sops-nix~
+
+#+ATTR_REVEAL: :frag (appear)
+Mettiamo nello store solo i segreti criptati e installiamo degli script che li decriptino a runtime.
+
+#+ATTR_REVEAL: :frag (appear)
+Questo richiede comunque un meccanismo per distrubuire la chiave privata in fase di deploy.
+
+** Disko
+#+BEGIN_NOTES
+Risultato pratico in fase d'installazione:
+- avvio la live
+- lancio lo script che crea le partizioni e formatta tutto
+- monto tutto in ~/mnt~ manualmente (solo ora durante l'installazione ovviamente)
+- lancio ~nixos-install~ (sotto fa ~chroot~ e ~nixos-rebuild install~)
+ #+END_NOTES
+
+NixOS fornisce opzioni che definiscono i punti di mount del sistema, ma durante l'installazione queste partizioni devono essere create manualmente.
+
+#+ATTR_REVEAL: :frag (appear)
+Disko e' un modulo NixOS che permette di dichiarare come devono essere create le partizioni (dimensione, file system, encryption, etc...)
+
+#+ATTR_REVEAL: :frag (appear)
+Tale modulo fa due cose:
+#+ATTR_REVEAL: :frag (appear)
+- setta i punti di mount (settando le opzioni di NixOS che altrimenti sarebbero state settate manualmente i.e. ~fileSystems~)
+- definisce uno script che formatta automaticamente
+
+** Impermanence
+#+BEGIN_NOTES
+Fare bind mount e' concesso per non creare 85 partizioni per lo stato di ogni singola applicazione
+#+END_NOTES
+
+NixOS e' stateless?
+
+#+ATTR_REVEAL: :frag (appear)
+Purtroppo no... 
+
+#+ATTR_REVEAL: :frag (appear)
+Ma possiamo domare lo stato!
+
+#+REVEAL: split
+
+https://github.com/nix-community/impermanence
+
+#+ATTR_REVEAL: :frag (appear)
+- e' un modulo NixOS
+- ~tmpfs~ come ~/~ (tranne ~/boot~ e ~/nix~)
+- elenchiamo tutto cio' che deve persistere (e lo mettamo in una partizione seperata)
+- ci forza a sapere dove si trova lo stato delle nostre applicazioni, quindi sappiamo cosa backuppare
+  
+** NixOS anywhere
+#+BEGIN_NOTES
+- Aruba
+- kexec (feature di linux per bootare un nuovo kernel senza riavviare)
+- usa ~disko~
+- E' il mio metodo di installazione preferito, anche per macchine fisiche, portare esempio del laptop in uso
+#+END_NOTES
+
+Il mio cloud provider non supporta NixOS... 😭
+
+#+ATTR_REVEAL: :frag (appear)
+https://github.com/nix-community/nixos-anywhere
+
+#+ATTR_REVEAL: :frag (appear)
+Per gli amanti di terraform esiste un anche un interessante modulo.
+
+
+
+* Nix pizza
+
+#+ATTR_REVEAL: :frag (appear)
+- "collettivo" di appassionati di Nix in Italia (ciao [[https://github.com/zarelit][@zarelit]]!)
+- https://github.com/nix-pizza/infra
+- liberta' di sperimentare soluzioni esotiche
+- Self-hosting di servizi
+- Demo time
+
+
+* Questa presentazione
+#+BEGIN_NOTES
+- il fatto che e' un flake semplifica la distribuzione e la riproducibilita'
+- l'alternativa ovvia per questo compito e' Docker, nix e' meglio in questo caso perche':
+- piu' snello
+- davvero riproducibile
+- installare pacchetti Emacs da un docker file non e' agevole come fatto qui con Nix
+- CI gratis semplicemente buildando tutti gli output del flake
+- CD molto facile grazie agli Hercules CI effects
+#+END_NOTES
+#+ATTR_REVEAL: :frag (appear)
+- e' un flake
+  #+BEGIN_SRC
+    nix build github:aciceri/nixos-devops-talk
+  #+END_SRC
+- e' scritta in org-mode
+- buildata con Nix
+- pubblicata su GitHub Pages usando Hercules CI
+
+** Repository
+https://github.com/aciceri/nixos-devops-talk
+#+ATTR_HTML: :width 50%
+[[./pics/qr.png]]
+
+* Domande
+
+Non troppo difficili per favore!
+
 # Local Variables:
 # eval: (progn (require 'org-re-reveal) (add-hook 'after-save-hook #'org-re-reveal-export-to-html nil t))
 # End:
