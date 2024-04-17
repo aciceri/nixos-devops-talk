@@ -20,8 +20,8 @@
 </section>
 
 <section>
-<section id="slide-1">
-<h2 id="1"><span class="section-number-2">1.</span> Contenuti</h2>
+<section id="slide-org41653b7">
+<h2 id="org41653b7">Contenuti</h2>
 <ul>
 <li class="fragment appear">Cosa sono Nix e NixOS</li>
 <li class="fragment appear">Perche' NixOS si presta bene per fare DevOps</li>
@@ -31,8 +31,8 @@
 </ul>
 
 </section>
-<section id="slide-1-1">
-<h3 id="1-1"><span class="section-number-3">1.1.</span> Disclaimer</h3>
+<section id="slide-orgebf991c">
+<h3 id="orgebf991c">Disclaimer</h3>
 <aside class="notes">
 <ul>
 <li>La mia esperienza nel mondo DevOps in modo full-time e' iniziata 2 anni fa, e con Nix!</li>
@@ -57,17 +57,17 @@
 </section>
 </section>
 <section>
-<section id="slide-2">
-<h2 id="2"><span class="section-number-2">2.</span> Nix</h2>
+<section id="slide-org3eee928">
+<h2 id="org3eee928">Nix</h2>
 
-<div id="org9f49fa1" class="figure">
+<div id="orgd1838f4" class="figure">
 <p><img src="./pics/the-declarative-trinity.webp" alt="the-declarative-trinity.webp" />
 </p>
 </div>
 
 </section>
-<section id="slide-2-1">
-<h3 id="2-1"><span class="section-number-3">2.1.</span> Nix come linguaggio</h3>
+<section id="slide-orgb400ecf">
+<h3 id="orgb400ecf">Nix come linguaggio</h3>
 <aside class="notes">
 <ul>
 <li>il fatto che sia lazy o funzionale puro non e' cosi' fondamentale in realta' (forse e' il motivo del relativamente scarso successo negli anni, anche se la situazione sta cambiando)</li>
@@ -80,8 +80,8 @@ Nix e' un DSL funzionale lazy pensato per restituire una struttura chiamata <b><
 </p>
 
 </section>
-<section id="slide-2-2">
-<h3 id="2-2"><span class="section-number-3">2.2.</span> Derivazione</h3>
+<section id="slide-orgc7a06b7">
+<h3 id="orgc7a06b7">Derivazione</h3>
 <aside class="notes">
 <ul>
 <li>Quasi mai si usa direttamente <code>builtins.derivations</code></li>
@@ -106,6 +106,7 @@ Nix e' un DSL funzionale lazy pensato per restituire una struttura chiamata <b><
     mkdir -p "$out/bin"
     cp ./hello "$out/bin/"
   '';
+}
 </code></pre>
 </div>
 
@@ -164,8 +165,8 @@ Quando l'evaluator Nix valuta una derivazione crea un file <code>.drv</code>
 </aside>
 
 </section>
-<section id="slide-2-3">
-<h3 id="2-3"><span class="section-number-3">2.3.</span> Build della derivazione</h3>
+<section id="slide-org8f48d79">
+<h3 id="org8f48d79">Build della derivazione</h3>
 <p class="fragment (appear)">
 Il file <code>drv</code> contiene tutte le informazioni necessarie per costruire l'output della derivazione.
 </p>
@@ -175,8 +176,8 @@ Se la derivazione dipende da altre derivazioni prima vengono buildate queste.
 </p>
 
 </section>
-<section id="slide-2-4">
-<h3 id="2-4"><span class="section-number-3">2.4.</span> Input addressed vs content addressed</h3>
+<section id="slide-orgbbc6e55">
+<h3 id="orgbbc6e55">Input addressed vs content addressed</h3>
 <p class="fragment (appear)">
 <b>Input addresssed</b>: l'output della derivazione finira' in un path che contiene un hash ottenuto partendo alcune informazioni tra cui il nome, la versione, il builder e <b>i nomi degli input</b> (quindi dai loro hash).
 </p>
@@ -208,8 +209,8 @@ Sono dette anche <b>content addressed</b>.
 </p>
 
 </section>
-<section id="slide-2-5">
-<h3 id="2-5"><span class="section-number-3">2.5.</span> Demo</h3>
+<section id="slide-org4891a80">
+<h3 id="org4891a80">Demo</h3>
 <p>
 <a href="https://github.com/NixOS/nixpkgs/blob/nixos-unstable/pkgs/games/umoria/default.nix">https://github.com/NixOS/nixpkgs/blob/nixos-unstable/pkgs/games/umoria/default.nix</a>
 </p>
@@ -220,8 +221,8 @@ nix build nixpkgs#umoria -L --rebuild
 </pre>
 
 </section>
-<section id="slide-2-6">
-<h3 id="2-6"><span class="section-number-3">2.6.</span> Nix store</h3>
+<section id="slide-orga5ae844">
+<h3 id="orga5ae844">Nix store</h3>
 <aside class="notes">
 <ul>
 <li>Mostrare /nix/store</li>
@@ -237,15 +238,15 @@ Dove finiscono gli output delle derivazioni?
 </p>
 
 
-<div id="org366d467" class="figure">
+<div id="org491faad" class="figure">
 <p><img src="./pics/store.webp" alt="store.webp" height="80%" class="fragment (appear)" />
 </p>
 </div>
 
 
 </section>
-<section id="slide-2-7">
-<h3 id="2-7"><span class="section-number-3">2.7.</span> Dipendenze e closure</h3>
+<section id="slide-orgb0cb7d3">
+<h3 id="orgb0cb7d3">Dipendenze e closure</h3>
 <aside class="notes">
 <ul>
 <li>citare garbage collector</li>
@@ -275,8 +276,8 @@ Pertanto possiamo copiare un programma con tutte le sue dipendenze da una macchi
 </p>
 
 </section>
-<section id="slide-2-8">
-<h3 id="2-8"><span class="section-number-3">2.8.</span> Cache</h3>
+<section id="slide-orgfeaecb5">
+<h3 id="orgfeaecb5">Cache</h3>
 <aside class="notes">
 <ul>
 <li>citare trustix (distributed build)</li>
@@ -286,7 +287,7 @@ Pertanto possiamo copiare un programma con tutte le sue dipendenze da una macchi
 </aside>
 
 
-<div id="orgb1324ba" class="figure">
+<div id="org976e31f" class="figure">
 <p><img src="./pics/caches-are-fast.png" alt="caches-are-fast.png" height="80%" class="fragment (appear)" />
 </p>
 </div>
@@ -302,15 +303,15 @@ Cio' e' possibile poiche' gli output sono (generalmente) <b>input addressed</b>.
 </section>
 </section>
 <section>
-<section id="slide-3">
-<h2 id="3"><span class="section-number-2">3.</span> NixOS</h2>
+<section id="slide-orgc559cb5">
+<h2 id="orgc559cb5">NixOS</h2>
 <p class="fragment (appear)">
 E se l'intero sistema operativo fosse l'output di una derivazione?
 </p>
 
 </section>
-<section id="slide-3-1">
-<h3 id="3-1"><span class="section-number-3">3.1.</span> Caratteristiche</h3>
+<section id="slide-orga8acd5b">
+<h3 id="orga8acd5b">Caratteristiche</h3>
 <p>
 In ordine sparso:
 </p>
@@ -324,8 +325,8 @@ In ordine sparso:
 </ul>
 
 </section>
-<section id="slide-3-2">
-<h3 id="3-2"><span class="section-number-3">3.2.</span> Module system</h3>
+<section id="slide-orgfd559e9">
+<h3 id="orgfd559e9">Module system</h3>
 <aside class="notes">
 <p>
 Sono stati inventati per NixOS ma vengono usati anche all'interno di altri progetti.
@@ -356,8 +357,8 @@ Sostanzialmente un modulo fa due cose:
 </ul>
 
 </section>
-<section id="slide-3-3">
-<h3 id="3-3"><span class="section-number-3">3.3.</span> Flakes</h3>
+<section id="slide-org3bdd5cb">
+<h3 id="org3bdd5cb">Flakes</h3>
 <aside class="notes">
 <p>
 Sono il futuro, anche se ufficialmente ancora unstable consiglio di iniziare usandoli.
@@ -367,7 +368,7 @@ Accennare i canali.
 </aside>
 
 
-<div id="org08d2935" class="figure">
+<div id="org584c114" class="figure">
 <p><img src="./pics/fleyks.png" alt="fleyks.png" width="50%" />
 </p>
 </div>
@@ -439,8 +440,8 @@ Schema di un flake:
 </div>
 
 </section>
-<section id="slide-3-4">
-<h3 id="3-4"><span class="section-number-3">3.4.</span> nixpkgs</h3>
+<section id="slide-orgd616c91">
+<h3 id="orgd616c91">nixpkgs</h3>
 <p>
 Contiene sia pacchetti (derivazioni) che moduli di NixOS.
 </p>
@@ -461,8 +462,8 @@ Contiene sia pacchetti (derivazioni) che moduli di NixOS.
 </section>
 </section>
 <section>
-<section id="slide-4">
-<h2 id="4"><span class="section-number-2">4.</span> Deploy</h2>
+<section id="slide-orgff2245e">
+<h2 id="orgff2245e">Deploy</h2>
 <p class="fragment (appear)">
 <code>nixos-rebuild</code> in realta' permette anche il deploy remoto.
 </p>
@@ -492,13 +493,11 @@ Esistono numeri altri tool:
 E se volessimo generare immagini per provider cloud specifici?
 </p>
 
-</section>
-<section>
 <ul>
-<li>AWS</li>
-<li>Google Cloud</li>
-<li>Azure</li>
-<li>molti altri</li>
+<li class="fragment appear">AWS</li>
+<li class="fragment appear">Google Cloud</li>
+<li class="fragment appear">Azure</li>
+<li class="fragment appear">molti altri</li>
 
 </ul>
 
@@ -510,8 +509,8 @@ E se volessimo generare immagini per provider cloud specifici?
 </section>
 </section>
 <section>
-<section id="slide-5">
-<h2 id="5"><span class="section-number-2">5.</span> Cosa non risolve Nix(OS)</h2>
+<section id="slide-org17305fa">
+<h2 id="org17305fa">Cosa non risolve Nix(OS)</h2>
 <p class="fragment (appear)">
 Niente.
 </p>
@@ -540,23 +539,79 @@ NixOS non e':
 </section>
 </section>
 <section>
-<section id="slide-6">
-<h2 id="6"><span class="section-number-2">6.</span> CI/CD</h2>
-<div class="outline-text-2" id="text-6">
-</div>
+<section id="slide-orgf1c7b54">
+<h2 id="orgf1c7b54">CI/CD</h2>
+<p class="fragment (appear)">
+Se i progetti su cui lavorano gli sviluppatori sono flake, la CI puo' semplicmente buildare un sottoinsieme dei suoi output (<code>packages</code>, <code>checks</code>, <code>devShells</code>, etc&#x2026;).
+<b>I progetti non richiedono nessuna configurazione ad hoc per abilitare la CI</b>.
+</p>
+
+<p class="fragment (appear)">
+Se lo store del sistema di CI persiste avremo build molto veloci. Altrimenti e' possibile istruire la CI a pushare cio' che builda su una cache (e interrogarla prima di buildare).
+</p>
+
+<p class="fragment (appear)">
+Se esponiamo questa cache agli sviluppatori minimizzeremo di molto il tempo di build in locale.
+</p>
+
 </section>
-<section id="slide-6-1">
-<h3 id="6-1"><span class="section-number-3">6.1.</span> Distribuire cio' che builda la CI su una cache</h3>
+<section>
+
+<aside class="notes">
+<p>
+Citare cachix - cache as a service
+Citare la mia CI
+Osservare come il deploy remote da CI puo' anche prevedere che la build avvenga sulla macchina remota (per esempio se la macchina che esegue la CI e' poco potente)
+</p>
+
+</aside>
+
+<p>
+Esistono diverse soluzioni:
+</p>
+
+<ul>
+<li class="fragment appear">GitHub actions (esistono actions per installare Nix e configurarlo per usare una cache)</li>
+<li class="fragment appear">Hydra (CI ufficiale di nixpkgs, compatibile con diverse forgie)</li>
+<li class="fragment appear">Hercules CI</li>
+<li class="fragment appear">molti altri&#x2026;</li>
+
+</ul>
+</section>
+<section>
+
+<p>
+Il continuous deployment viene facile, basta eseguire uno dei tool visti prima in CI.
+</p>
+
+<p class="fragment (appear)">
+Esistono soluzioni piu' strutturate per gestire il deploy di sistemi multipli (come Hercules CI).
+</p>
+
+<p class="fragment (appear)">
+Alternativamente si puo' anche istruire il sistema stesso ad aggiornarsi da solo:
+</p>
+
+<div class="org-src-container">
+
+<pre class="fragment (appear)"><code class="nix" >system.autoUpgrade = {
+  enable = true;
+  flake = "github:aciceri/nixfleet#${config.networking.hostName}";
+  dates = "daily";
+  allowReboot = false;
+};
+</code></pre>
+</div>
 
 </section>
 </section>
 <section>
-<section id="slide-7">
-<h2 id="7"><span class="section-number-2">7.</span> Chicche</h2>
+<section id="slide-orgacfc93c">
+<h2 id="orgacfc93c">Chicche</h2>
 
 </section>
-<section id="slide-7-1">
-<h3 id="7-1"><span class="section-number-3">7.1.</span> Cross-compilazione</h3>
+<section id="slide-org641b503">
+<h3 id="org641b503">Cross-compilazione</h3>
 <aside class="notes">
 <p>
 Molti provider oggigiorno offrono host in cloud ARM, e sono piu' economici!
@@ -584,10 +639,8 @@ Nix permette di "cross-buildare" le derivazioni in due modi diversi, e funzionan
 </ul>
 
 </section>
-<section id="slide-7-2">
-<h3 id="7-2"><span class="section-number-3">7.2.</span> Docker</h3>
-</section>
-<section>
+<section id="slide-orgc17dbbb">
+<h3 id="orgc17dbbb">Docker</h3>
 <p>
 Nix e' probabilmente un migliore build system per Docker di Docker stesso.
 </p>
@@ -604,8 +657,8 @@ Nix e' probabilmente un migliore build system per Docker di Docker stesso.
 <section>
 
 </section>
-<section id="slide-7-3">
-<h3 id="7-3"><span class="section-number-3">7.3.</span> Segreti</h3>
+<section id="slide-org378174e">
+<h3 id="org378174e">Segreti</h3>
 <aside class="notes">
 <p>
 Soluzione banale: integrare qualcosa che copi i segreti nel nostro sistema di deploy.
@@ -615,7 +668,7 @@ Ma noi vogliamo evitare che lo stato del nostro sistema dipenda dallo stato di q
 </aside>
 
 
-<div id="org49d706d" class="figure">
+<div id="org52f3550" class="figure">
 <p><img src="./pics/segreto.png" alt="segreto.png" width="50%" />
 </p>
 </div>
@@ -626,12 +679,12 @@ Ma noi vogliamo evitare che lo stato del nostro sistema dipenda dallo stato di q
 Come possiamo avere segreti se le derivazioni nello store sono leggibili da tutti?
 </p>
 
-<p>
+<p class="fragment (appear)">
 Criptiamoli!
 </p>
 <ul>
-<li><code>agenix</code></li>
-<li><code>sops-nix</code></li>
+<li class="fragment appear"><code>agenix</code></li>
+<li class="fragment appear"><code>sops-nix</code></li>
 
 </ul>
 
@@ -644,18 +697,42 @@ Questo richiede comunque un meccanismo per distrubuire la chiave privata in fase
 </p>
 
 </section>
-<section id="slide-7-4">
-<h3 id="7-4"><span class="section-number-3">7.4.</span> Disko</h3>
+<section id="slide-orgd30deb6">
+<h3 id="orgd30deb6">Disko</h3>
 <aside class="notes">
 <p>
-
+Risultato pratico in fase d'installazione:
 </p>
+<ul>
+<li>avvio la live</li>
+<li>lancio lo script che crea le partizioni e formatta tutto</li>
+<li>monto tutto in <code>/mnt</code> manualmente (solo ora durante l'installazione ovviamente)</li>
+<li>lancio <code>nixos-install</code> (sotto fa <code>chroot</code> e <code>nixos-rebuild install</code>)</li>
+
+</ul>
 
 </aside>
 
+<p>
+NixOS fornisce opzioni che definiscono i punti di mount del sistema, ma durante l'installazione queste partizioni devono essere create manualmente.
+</p>
+
+<p class="fragment (appear)">
+Disko e' un modulo NixOS che permette di dichiarare come devono essere create le partizioni (dimensione, file system, encryption, etc&#x2026;)
+</p>
+
+<p class="fragment (appear)">
+Tale modulo fa due cose:
+</p>
+<ul>
+<li class="fragment appear">setta i punti di mount (settando le opzioni di NixOS che altrimenti sarebbero state settate manualmente i.e. <code>fileSystems</code>)</li>
+<li class="fragment appear">definisce uno script che formatta automaticamente</li>
+
+</ul>
+
 </section>
-<section id="slide-7-5">
-<h3 id="7-5"><span class="section-number-3">7.5.</span> Impermanence</h3>
+<section id="slide-org7341005">
+<h3 id="org7341005">Impermanence</h3>
 <aside class="notes">
 <p>
 Fare bind mount e' concesso per non creare 85 partizioni per lo stato di ogni singola applicazione
@@ -691,13 +768,14 @@ Ma possiamo domare lo stato!
 </ul>
 
 </section>
-<section id="slide-7-6">
-<h3 id="7-6"><span class="section-number-3">7.6.</span> NixOS anywhere</h3>
+<section id="slide-orgc39cc60">
+<h3 id="orgc39cc60">NixOS anywhere</h3>
 <aside class="notes">
 <ul>
 <li>Aruba</li>
 <li>kexec (feature di linux per bootare un nuovo kernel senza riavviare)</li>
 <li>usa <code>disko</code></li>
+<li>E' il mio metodo di installazione preferito, anche per macchine fisiche, portare esempio del laptop in uso</li>
 
 </ul>
 
@@ -711,13 +789,17 @@ Il mio cloud provider non supporta NixOS&#x2026; 😭
 <a href="https://github.com/nix-community/nixos-anywhere" class="fragment (appear)">https://github.com/nix-community/nixos-anywhere</a>
 </p>
 
+<p class="fragment (appear)">
+Per gli amanti di terraform esiste un anche un interessante modulo.
+</p>
+
 
 
 </section>
 </section>
 <section>
-<section id="slide-8">
-<h2 id="8"><span class="section-number-2">8.</span> Nix pizza</h2>
+<section id="slide-orge75014d">
+<h2 id="orge75014d">Nix pizza</h2>
 <ul>
 <li class="fragment appear">"collettivo" di appassionati di Nix in Italia (ciao <a href="https://github.com/zarelit">@zarelit</a>!)</li>
 <li class="fragment appear"><a href="https://github.com/nix-pizza/infra">https://github.com/nix-pizza/infra</a></li>
@@ -731,8 +813,8 @@ Il mio cloud provider non supporta NixOS&#x2026; 😭
 </section>
 </section>
 <section>
-<section id="slide-9">
-<h2 id="9"><span class="section-number-2">9.</span> Questa presentazione</h2>
+<section id="slide-orgbc9ee11">
+<h2 id="orgbc9ee11">Questa presentazione</h2>
 <aside class="notes">
 <ul>
 <li>il fatto che e' un flake semplifica la distribuzione e la riproducibilita'</li>
@@ -760,13 +842,13 @@ nix build github:aciceri/nixos-devops-talk
 </ul>
 
 </section>
-<section id="slide-9-1">
-<h3 id="9-1"><span class="section-number-3">9.1.</span> Repository</h3>
+<section id="slide-org57a5198">
+<h3 id="org57a5198">Repository</h3>
 <p>
 <a href="https://github.com/aciceri/nixos-devops-talk">https://github.com/aciceri/nixos-devops-talk</a>
 </p>
 
-<div id="org426b7a8" class="figure">
+<div id="org2d10687" class="figure">
 <p><img src="./pics/qr.png" alt="qr.png" width="50%" />
 </p>
 </div>
@@ -774,8 +856,8 @@ nix build github:aciceri/nixos-devops-talk
 </section>
 </section>
 <section>
-<section id="slide-10">
-<h2 id="10"><span class="section-number-2">10.</span> Domande</h2>
+<section id="slide-org41bd915">
+<h2 id="org41bd915">Domande</h2>
 <p>
 Non troppo difficili per favore!
 </p>
