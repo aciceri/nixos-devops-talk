@@ -3,37 +3,773 @@
 <head>
 <meta charset="utf-8"/>
 <title>NixOS per DevOps</title>
-<meta name="author" content="Andrea Ciceri"/>
+<meta name="author" content="Nix build user"/>
 <style type="text/css">
 .underline { text-decoration: underline; }
 </style>
 <link rel="stylesheet" href="./reveal.js/dist/reveal.css"/>
 
-<link rel="stylesheet" href="./reveal.js/dist/theme/serif.css" id="theme"/>
+<link rel="stylesheet" href="./reveal.js/dist/theme/black.css" id="theme"/>
+<link rel="stylesheet" href="./reveal.js/plugin/highlight/zenburn.css"/>
 </head>
 <body>
 <div class="reveal">
 <div class="slides">
 <section id="sec-title-slide">
-<h1 class="title">NixOS per DevOps</h1><h2 class="author">Andrea Ciceri</h2><p class="date">Created: 2024-04-10 Wed 15:33</p>
+<h1>NixOS per DevOps<h1>
 </section>
 
 <section>
 <section id="slide-1">
-<h2 id="1"><span class="section-number-2">1.</span> Una formula a caso</h2>
-<p>
-Ciao
-\({n! \over k!(n-k)!} = {n \choose k}\)
-</p>
+<h2 id="1"><span class="section-number-2">1.</span> Contenuti</h2>
+<ul>
+<li class="fragment appear">Cosa sono Nix e NixOS</li>
+<li class="fragment appear">Perche' NixOS si presta bene per fare DevOps</li>
+<li class="fragment appear">CI/CD con NixOS</li>
+<li class="fragment appear">Un caso d'uso</li>
+
+</ul>
+
+</section>
+<section id="slide-1-1">
+<h3 id="1-1"><span class="section-number-3">1.1.</span> Disclaimer</h3>
+<aside class="notes">
+<ul>
+<li>La mia esperienza nel mondo DevOps in modo full-time e' iniziata 2 anni fa, e con Nix!</li>
+<li>Prima facevo full stack dev, quindi ho visto tecnologie piu' tradizionali ma non sono un esperto e potrei non essere il migliore per fare confronti, pertanto provero' ad astenermi</li>
+<li>cerchero' di distinguere bene tra le mie opinioni e i fatti</li>
+<li>lo scopo e' fare una panoramica sulle possibilita' stuzzicando l'appetito</li>
+<li>questa presentazione e' un'alpha, mi piacerebbe ricevere feedback e che possa essere integrata in futuro</li>
+<li>non sono nemmeno piu' sicuro che il titolo della presentazione abbia senso</li>
+
+</ul>
+
+</aside>
+<ul>
+<li class="fragment appear">Ma <code>x</code> lo posso fare anche con <code>y</code>!</li>
+<li class="fragment appear">Il mio approccio con Nix e' ortodosso, ma nulla vieta un'integrazione solo parziale</li>
+<li class="fragment appear">Molte opinioni personali</li>
+<li class="fragment appear">Sacrifichero' un po' precisione a favore di una migliore digeribilita'</li>
+<li class="fragment appear">Certe parti sono scarne, questa presentazione e' open source, aiutatemi a migliorarla!</li>
+
+</ul>
 
 </section>
 </section>
 <section>
 <section id="slide-2">
-<h2 id="2"><span class="section-number-2">2.</span> Un'immagine</h2>
+<h2 id="2"><span class="section-number-2">2.</span> Nix</h2>
 
-<div id="org4b792eb" class="figure">
-<p><img src="./pics/duomo.jpg" alt="duomo.jpg" />
+<div id="orgae48789" class="figure">
+<p><img src="./pics/the-declarative-trinity.webp" alt="the-declarative-trinity.webp" />
+</p>
+</div>
+
+</section>
+<section id="slide-2-1">
+<h3 id="2-1"><span class="section-number-3">2.1.</span> Nix come linguaggio</h3>
+<aside class="notes">
+<ul>
+<li>il fatto che sia lazy o funzionale puro non e' cosi' fondamentale in realta' (forse e' il motivo del relativamente scarso successo negli anni, anche se la situazione sta cambiando)</li>
+
+</ul>
+
+</aside>
+<p>
+Nix e' un DSL funzionale lazy pensato per restituire una struttura chiamata <b><b>derivazione</b></b>
+</p>
+
+</section>
+<section id="slide-2-2">
+<h3 id="2-2"><span class="section-number-3">2.2.</span> Derivazione</h3>
+<aside class="notes">
+<ul>
+<li>Quasi mai si usa direttamente <code>builtins.derivations</code></li>
+<li>questo estratto non valuta, manca lo scope</li>
+
+</ul>
+
+</aside>
+<div class="org-src-container">
+
+<pre><code class="nix" >stdenv.mkDerivation {
+  name = "hello";
+
+  src = ./src;
+
+  buildInputs = [ coreutils gcc ];
+
+  buildPhase = ''
+    gcc "$src/hello.c" -o ./hello
+  '';
+  installPhase = ''
+    mkdir -p "$out/bin"
+    cp ./hello "$out/bin/"
+  '';
+</code></pre>
+</div>
+
+<ul>
+<li>la sintassi ricorda JSON, ma e' Turing completo! (condizioni, funzioni, etc&#x2026;)</li>
+<li><code>stdenv.mkDerivation</code> wrappa <code>builtins.derivation</code></li>
+
+</ul>
+
+</section>
+<section>
+<aside class="notes">
+<p>
+Nel linguaggio comune per derivazione si intendono almeno tre cose:
+</p>
+<ul>
+<li>l'oggetto in memoria ad eval time</li>
+<li>il file <code>.drv</code></li>
+<li>l'output della derivazione</li>
+
+</ul>
+
+</aside>
+<p>
+Quando l'evaluator Nix valuta una derivazione crea un file <code>.drv</code>
+</p>
+
+<pre>
+{
+  "/nix/store/z3hhlxbckx4g3n9sw91nnvlkjvyw754p-myname.drv": {
+    "outputs": {
+      "out": {
+        "path": "/nix/store/40s0qmrfb45vlh6610rk29ym318dswdr-myname"
+      }
+    },
+    "inputSrcs": [],
+    "inputDrvs": {},
+    "platform": "mysystem",
+    "builder": "mybuilder",
+    "args": [],
+    "env": {
+      "builder": "mybuilder",
+      "name": "myname",
+      "out": "/nix/store/40s0qmrfb45vlh6610rk29ym318dswdr-myname",
+      "system": "mysystem"
+    }
+  }
+}
+</pre>
+
+<aside class="notes">
+<p>
+
+</p>
+
+</aside>
+
+</section>
+<section id="slide-2-3">
+<h3 id="2-3"><span class="section-number-3">2.3.</span> Build della derivazione</h3>
+<p class="fragment (appear)">
+Il file <code>drv</code> contiene tutte le informazioni necessarie per costruire l'output della derivazione.
+</p>
+
+<p class="fragment (appear)">
+Se la derivazione dipende da altre derivazioni prima vengono buildate queste.
+</p>
+
+</section>
+<section id="slide-2-4">
+<h3 id="2-4"><span class="section-number-3">2.4.</span> Input addressed vs content addressed</h3>
+<p class="fragment (appear)">
+<b>Input addresssed</b>: l'output della derivazione finira' in un path che contiene un hash ottenuto partendo alcune informazioni tra cui il nome, la versione, il builder e <b>i nomi degli input</b> (quindi dai loro hash).
+</p>
+
+<p class="fragment (appear)">
+In questo modo e' possibile sapere l'output di una derivazione <b>prima di buildarla</b>.
+</p>
+
+<p class="fragment (appear)">
+Le build avvengono in ambienti <b>sandboxed</b> senza accesso al sistema (in particolare a internet), in sostanza <b>dipendono solo dalle derivazioni input</b>.
+</p>
+
+</section>
+<section>
+<p>
+Come possiamo buildare qualcosa se non possiamo scaricarne i sorgenti?
+</p>
+
+<p class="fragment (appear)">
+<b>Fixed output</b>: se siamo in grado di esplicitare l'hash del contenuto nel file <code>drv</code> (prima che avvenga la build) allora la sandbox dove avverra' la build avra' accesso a internet (<code>git</code>, <code>curl</code>, etc&#x2026;)
+</p>
+
+<p class="fragment (appear)">
+Corollario: risalendo il grafo delle dipendenze di una derivazione alla fine troveremo sempre derivazioni <b>fixed output</b>.
+</p>
+
+<p class="fragment (appear)">
+Sono dette anche <b>content addressed</b>.
+</p>
+
+</section>
+<section id="slide-2-5">
+<h3 id="2-5"><span class="section-number-3">2.5.</span> Demo</h3>
+<p>
+<a href="https://github.com/NixOS/nixpkgs/blob/nixos-unstable/pkgs/games/umoria/default.nix">https://github.com/NixOS/nixpkgs/blob/nixos-unstable/pkgs/games/umoria/default.nix</a>
+</p>
+
+<pre>
+nix derivation show nixpkgs#umoria
+nix build nixpkgs#umoria -L --rebuild
+</pre>
+
+</section>
+<section id="slide-2-6">
+<h3 id="2-6"><span class="section-number-3">2.6.</span> Nix store</h3>
+<aside class="notes">
+<ul>
+<li>Mostrare /nix/store</li>
+<li>Sia file `drv` che output finiscono qui</li>
+<li>lo store e' immutabile, le derivazioni una volta buildate non cambiano mai</li>
+<li>lo store e' leggibile da tutti</li>
+
+</ul>
+
+</aside>
+<p class="fragment (appear)">
+Dove finiscono gli output delle derivazioni?
+</p>
+
+
+<div id="org330c6b9" class="figure">
+<p><img src="./pics/store.webp" alt="store.webp" height="80%" class="fragment (appear)" />
+</p>
+</div>
+
+
+</section>
+<section id="slide-2-7">
+<h3 id="2-7"><span class="section-number-3">2.7.</span> Dipendenze e closure</h3>
+<aside class="notes">
+<ul>
+<li>citare garbage collector</li>
+<li>copiare solo drv ed effettuare build remote</li>
+<li>build distribuite</li>
+
+</ul>
+
+</aside>
+
+<p class="fragment (appear)">
+Nix quindi e' in grado di gestire contemporaneamente diverse versioni delle stesse dipendenze.
+</p>
+
+<p class="fragment (appear)">
+Potremo per esempio avere sullo stesso sistema versioni diverse di uno stesso software che pero' richiedono dipendenze differenti (dependency hell).
+</p>
+
+</section>
+<section>
+<p>
+Data una derivazione, e' possibile considerare la chiusura rispetto alla relazione di dipendenza di tale derivazione, ovvero la <b>closure</b>.
+</p>
+
+<p class="fragment (appear)">
+Pertanto possiamo copiare un programma con tutte le sue dipendenze da una macchina all'altra semplicemente copiando la closure.
+</p>
+
+</section>
+<section id="slide-2-8">
+<h3 id="2-8"><span class="section-number-3">2.8.</span> Cache</h3>
+<aside class="notes">
+<ul>
+<li>citare trustix (distributed build)</li>
+
+</ul>
+
+</aside>
+
+
+<div id="orgfee3c7d" class="figure">
+<p><img src="./pics/caches-are-fast.png" alt="caches-are-fast.png" height="80%" class="fragment (appear)" />
+</p>
+</div>
+
+<p class="fragment (appear)">
+Nix prima di buildare una derivazione (un file <code>drv</code>) interroga un <b>substituter</b> (detto anche <b>cache</b>) ed eventualmente scarica l'output della derivazione.
+</p>
+
+<p class="fragment (appear)">
+Cio' e' possibile poiche' gli output sono (generalmente) <b>input addressed</b>.
+</p>
+
+</section>
+</section>
+<section>
+<section id="slide-3">
+<h2 id="3"><span class="section-number-2">3.</span> NixOS</h2>
+<p class="fragment (appear)">
+E se l'intero sistema operativo fosse l'output di una derivazione?
+</p>
+
+</section>
+<section id="slide-3-1">
+<h3 id="3-1"><span class="section-number-3">3.1.</span> Caratteristiche</h3>
+<p>
+In ordine sparso:
+</p>
+
+<ul>
+<li class="fragment appear">dichiarativo</li>
+<li class="fragment appear">Linux</li>
+<li class="fragment appear">usa <code>systemd</code></li>
+<li class="fragment appear">puo' essere rolling release (in realta' fanno release)</li>
+
+</ul>
+
+</section>
+<section id="slide-3-2">
+<h3 id="3-2"><span class="section-number-3">3.2.</span> Module system</h3>
+<aside class="notes">
+<p>
+Sono stati inventati per NixOS ma vengono usati anche all'interno di altri progetti.
+Idea vincente IMO.
+Usare solo le funzioni come astrazione quando si hanno cosi' tante opzioni (argomenti?) diventa ingestibile
+Esempio: <a href="https://github.com/NixOS/nixpkgs/tree/nixos-unstable/nixos/modules/services/continuous-integration/github-runner">https://github.com/NixOS/nixpkgs/tree/nixos-unstable/nixos/modules/services/continuous-integration/github-runner</a>
+</p>
+
+</aside>
+
+<p class="fragment (appear)">
+Nix non e' strong typed, i moduli aggiungono un type system <b>dentro il linguaggio stesso</b>.
+</p>
+
+<p class="fragment (appear)">
+Sono estremamente componibili.
+</p>
+
+</section>
+<section>
+<p>
+Sostanzialmente un modulo fa due cose:
+</p>
+<ul>
+<li class="fragment appear">dichiara opzioni (nomi, tipi, valori di esempio, valori di default, documentazione, etc&#x2026;)</li>
+<li class="fragment appear">imposta altre opzioni (di altri moduli) partendo dai valori delle sue opzioni</li>
+
+</ul>
+
+</section>
+<section id="slide-3-3">
+<h3 id="3-3"><span class="section-number-3">3.3.</span> Flakes</h3>
+<aside class="notes">
+<p>
+Sono il futuro, anche se ufficialmente ancora unstable consiglio di iniziare usandoli.
+Accennare i canali.
+</p>
+
+</aside>
+
+
+<div id="org6bdba72" class="figure">
+<p><img src="./pics/fleyks.png" alt="fleyks.png" width="50%" />
+</p>
+</div>
+
+</section>
+<section>
+<p>
+Il linguaggio diventa veramente puro (e.g. non puo' leggere path fuori dallo store).
+</p>
+
+<p class="fragment (appear)">
+Forniscono un modo unificato di dichiarare le dipendenze dei propri progetti ed interagire con essi da CLI.
+</p>
+
+</section>
+<section>
+
+<p>
+Schema di un flake:
+</p>
+<div class="org-src-container">
+
+<pre><code class="nix" >{ self, ... }@inputs:
+{
+  # Executed by `nix flake check`
+  checks."&lt;system&gt;"."&lt;name&gt;" = derivation;
+  # Executed by `nix build .#&lt;name&gt;`
+  packages."&lt;system&gt;"."&lt;name&gt;" = derivation;
+  # Executed by `nix build .`
+  packages."&lt;system&gt;".default = derivation;
+  # Executed by `nix run .#&lt;name&gt;`
+  apps."&lt;system&gt;"."&lt;name&gt;" = {
+    type = "app";
+    program = "&lt;store-path&gt;";
+  };
+  # Executed by `nix run . -- &lt;args?&gt;`
+  apps."&lt;system&gt;".default = { type = "app"; program = "..."; };
+
+  # Formatter (alejandra, nixfmt or nixpkgs-fmt)
+  formatter."&lt;system&gt;" = derivation;
+  # Used for nixpkgs packages, also accessible via `nix build .#&lt;name&gt;`
+  legacyPackages."&lt;system&gt;"."&lt;name&gt;" = derivation;
+  # Overlay, consumed by other flakes
+  overlays."&lt;name&gt;" = final: prev: { };
+  # Default overlay
+  overlays.default = final: prev: { };
+  # Nixos module, consumed by other flakes
+  nixosModules."&lt;name&gt;" = { config, ... }: { options = {}; config = {}; };
+  # Default module
+  nixosModules.default = { config, ... }: { options = {}; config = {}; };
+  # Used with `nixos-rebuild switch --flake .#&lt;hostname&gt;`
+  # nixosConfigurations."&lt;hostname&gt;".config.system.build.toplevel must be a derivation
+  nixosConfigurations."&lt;hostname&gt;" = {};
+  # Used by `nix develop .#&lt;name&gt;`
+  devShells."&lt;system&gt;"."&lt;name&gt;" = derivation;
+  # Used by `nix develop`
+  devShells."&lt;system&gt;".default = derivation;
+  # Hydra build jobs
+  hydraJobs."&lt;attr&gt;"."&lt;system&gt;" = derivation;
+  # Used by `nix flake init -t &lt;flake&gt;#&lt;name&gt;`
+  templates."&lt;name&gt;" = {
+    path = "&lt;store-path&gt;";
+    description = "template description goes here?";
+  };
+  # Used by `nix flake init -t &lt;flake&gt;`
+  templates.default = { path = "&lt;store-path&gt;"; description = ""; };
+}
+</code></pre>
+</div>
+
+</section>
+<section id="slide-3-4">
+<h3 id="3-4"><span class="section-number-3">3.4.</span> nixpkgs</h3>
+<p>
+Contiene sia pacchetti (derivazioni) che moduli di NixOS.
+</p>
+
+<p>
+<a href="https://github.com/nixos/nixpkgs">https://github.com/nixos/nixpkgs</a>
+</p>
+
+<p>
+<a href="https://repology.org/repositories/graphs">https://repology.org/repositories/graphs</a>
+</p>
+
+<p>
+<a href="https://search.nixos.org/">https://search.nixos.org/</a>
+</p>
+
+
+</section>
+</section>
+<section>
+<section id="slide-4">
+<h2 id="4"><span class="section-number-2">4.</span> Deploy</h2>
+<p class="fragment (appear)">
+<code>nixos-rebuild</code> in realta' permette anche il deploy remoto.
+</p>
+
+<pre class="fragment (appear)">
+nixos-rebuild switch --flake github:aciceri/nixfleet#kirk --target-host X.X.X.X --build-host Y.Y.Y.Y
+</pre>
+
+</section>
+<section>
+
+<p>
+Esistono numeri altri tool:
+</p>
+<ul>
+<li><code>nixops</code></li>
+<li><code>colmena</code></li>
+<li><code>deploy-rs</code></li>
+<li>altri</li>
+
+</ul>
+
+</section>
+<section>
+
+<p>
+E se volessimo generare immagini per provider cloud specifici?
+</p>
+
+</section>
+<section>
+<ul>
+<li>AWS</li>
+<li>Google Cloud</li>
+<li>Azure</li>
+<li>molti altri</li>
+
+</ul>
+
+<p class="fragment (appear)">
+<a href="https://github.com/nix-community/nixos-generators" class="fragment (appear)">https://github.com/nix-community/nixos-generators</a>
+</p>
+
+
+</section>
+</section>
+<section>
+<section id="slide-5">
+<h2 id="5"><span class="section-number-2">5.</span> Cosa non risolve Nix(OS)</h2>
+<p class="fragment (appear)">
+Niente.
+</p>
+
+<p class="fragment (appear)">
+Dico davvero.
+</p>
+
+<p class="fragment (appear)">
+Ok, quasi niente.
+</p>
+
+</section>
+<section>
+
+<p>
+NixOS non e':
+</p>
+<ul>
+<li class="fragment appear">Terraform</li>
+<li class="fragment appear">Kubernetes</li>
+<li class="fragment appear">???</li>
+
+</ul>
+
+</section>
+</section>
+<section>
+<section id="slide-6">
+<h2 id="6"><span class="section-number-2">6.</span> CI/CD</h2>
+<div class="outline-text-2" id="text-6">
+</div>
+</section>
+<section id="slide-6-1">
+<h3 id="6-1"><span class="section-number-3">6.1.</span> Distribuire cio' che builda la CI su una cache</h3>
+
+</section>
+</section>
+<section>
+<section id="slide-7">
+<h2 id="7"><span class="section-number-2">7.</span> Chicche</h2>
+
+</section>
+<section id="slide-7-1">
+<h3 id="7-1"><span class="section-number-3">7.1.</span> Cross-compilazione</h3>
+<aside class="notes">
+<p>
+Molti provider oggigiorno offrono host in cloud ARM, e sono piu' economici!
+Ah comunque Nix supporta svariate architetture, tra cui anche darwin (x86 e ARM).
+</p>
+
+<p>
+Nella definizione delle derivazioni non appare `gcc`, bensi' la variabile `$CC`
+</p>
+
+<p>
+nix build nixpkgs#legacyPackages.x86<sub>64</sub>-linux.pkgsCross.riscv64.hello -L &#x2013;rebuild
+nix build nixpkgs#legacyPackages.aarch64-linux.hello -L
+</p>
+
+</aside>
+
+<p>
+Nix permette di "cross-buildare" le derivazioni in due modi diversi, e funzionano entrambi molto bene.
+</p>
+<ul>
+<li class="fragment appear">vera cross-compilazione</li>
+<li class="fragment appear"><code>binfmt</code> (QEMU)</li>
+
+</ul>
+
+</section>
+<section id="slide-7-2">
+<h3 id="7-2"><span class="section-number-3">7.2.</span> Docker</h3>
+</section>
+<section>
+<p>
+Nix e' probabilmente un migliore build system per Docker di Docker stesso.
+</p>
+
+<ul>
+<li class="fragment appear">miglior caching (no "layering lineare")</li>
+<li class="fragment appear">vera riproducibilita'</li>
+<li class="fragment appear">le immagini Docker non sono altro che derivazioni Nix</li>
+<li class="fragment appear">accesso a tutto nixpkgs (quantita' spropositata di pacchetti)</li>
+<li class="fragment appear">cross-building migliore (<code>docker buildx</code> 🤮)</li>
+
+</ul>
+</section>
+<section>
+
+</section>
+<section id="slide-7-3">
+<h3 id="7-3"><span class="section-number-3">7.3.</span> Segreti</h3>
+<aside class="notes">
+<p>
+Soluzione banale: integrare qualcosa che copi i segreti nel nostro sistema di deploy.
+Ma noi vogliamo evitare che lo stato del nostro sistema dipenda dallo stato di qualcosa di esterno, sarebbe bello se la derivazione del sistema dipendesse anche dai segreti.
+</p>
+
+</aside>
+
+
+<div id="org73d24b7" class="figure">
+<p><img src="./pics/segreto.png" alt="segreto.png" width="50%" />
+</p>
+</div>
+
+</section>
+<section>
+<p>
+Come possiamo avere segreti se le derivazioni nello store sono leggibili da tutti?
+</p>
+
+<p>
+Criptiamoli!
+</p>
+<ul>
+<li><code>agenix</code></li>
+<li><code>sops-nix</code></li>
+
+</ul>
+
+<p class="fragment (appear)">
+Mettiamo nello store solo i segreti criptati e installiamo degli script che li decriptino a runtime.
+</p>
+
+<p class="fragment (appear)">
+Questo richiede comunque un meccanismo per distrubuire la chiave privata in fase di deploy.
+</p>
+
+</section>
+<section id="slide-7-4">
+<h3 id="7-4"><span class="section-number-3">7.4.</span> Disko</h3>
+
+</section>
+<section id="slide-7-5">
+<h3 id="7-5"><span class="section-number-3">7.5.</span> Impermanence</h3>
+<aside class="notes">
+<p>
+Fare bind mount e' concesso per non creare 85 partizioni per lo stato di ogni singola applicazione
+</p>
+
+</aside>
+
+<p>
+NixOS e' stateless?
+</p>
+
+<p class="fragment (appear)">
+Purtroppo no&#x2026; 
+</p>
+
+<p class="fragment (appear)">
+Ma possiamo domare lo stato!
+</p>
+
+</section>
+<section>
+
+<p>
+<a href="https://github.com/nix-community/impermanence">https://github.com/nix-community/impermanence</a>
+</p>
+
+<ul>
+<li class="fragment appear">e' un modulo NixOS</li>
+<li class="fragment appear"><code>tmpfs</code> come <code>/</code> (tranne <code>/boot</code> e <code>/nix</code>)</li>
+<li class="fragment appear">elenchiamo tutto cio' che deve persistere (e lo mettamo in una partizione seperata)</li>
+<li class="fragment appear">ci forza a sapere dove si trova lo stato delle nostre applicazioni, quindi sappiamo cosa backuppare</li>
+
+</ul>
+
+</section>
+<section id="slide-7-6">
+<h3 id="7-6"><span class="section-number-3">7.6.</span> NixOS anywhere</h3>
+<aside class="notes">
+<ul>
+<li>Aruba</li>
+<li>kexec (feature di linux per bootare un nuovo kernel senza riavviare)</li>
+<li>usa <code>disko</code></li>
+
+</ul>
+
+</aside>
+
+<p>
+Il mio cloud provider non supporta NixOS&#x2026; 😭
+</p>
+
+<p class="fragment (appear)">
+<a href="https://github.com/nix-community/nixos-anywhere" class="fragment (appear)">https://github.com/nix-community/nixos-anywhere</a>
+</p>
+
+
+
+</section>
+</section>
+<section>
+<section id="slide-8">
+<h2 id="8"><span class="section-number-2">8.</span> Nix pizza</h2>
+<ul>
+<li class="fragment appear">"collettivo" di appassionati di Nix in Italia (ciao <a href="https://github.com/zarelit">@zarelit</a>!)</li>
+<li class="fragment appear"><a href="https://github.com/nix-pizza/infra">https://github.com/nix-pizza/infra</a></li>
+<li class="fragment appear">liberta' di sperimentare soluzioni esotiche</li>
+<li class="fragment appear">Self-hosting di servizi</li>
+<li class="fragment appear">Demo time</li>
+
+</ul>
+
+
+</section>
+</section>
+<section>
+<section id="slide-9">
+<h2 id="9"><span class="section-number-2">9.</span> Linkografia</h2>
+
+
+
+</section>
+</section>
+<section>
+<section id="slide-10">
+<h2 id="10"><span class="section-number-2">10.</span> Questa presentazione</h2>
+<aside class="notes">
+<ul>
+<li>il fatto che e' un flake semplifica la distribuzione e la riproducibilita'</li>
+<li>l'alternativa ovvia per questo compito e' Docker, nix e' meglio in questo caso perche':</li>
+<li>piu' snello</li>
+<li>davvero riproducibile</li>
+<li>installare pacchetti Emacs da un docker file non e' agevole come fatto qui con Nix</li>
+<li>CI gratis semplicemente buildando tutti gli output del flake</li>
+<li>CD molto facile grazie agli Hercules CI effects</li>
+
+</ul>
+
+</aside>
+<ul>
+<li class="fragment appear"><p>
+e' un flake
+</p>
+<pre>
+nix build github:aciceri/nixos-devops-talk
+</pre></li>
+<li class="fragment appear">e' scritta in org-mode</li>
+<li class="fragment appear">buildata con Nix</li>
+<li class="fragment appear">pubblicata su GitHub Pages usando Hercules CI</li>
+
+</ul>
+
+</section>
+<section id="slide-10-1">
+<h3 id="10-1"><span class="section-number-3">10.1.</span> Repository</h3>
+<p>
+<a href="https://github.com/aciceri/nixos-devops-talk">https://github.com/aciceri/nixos-devops-talk</a>
+</p>
+
+<div id="orgb351f90" class="figure">
+<p><img src="./pics/qr.png" alt="qr.png" width="50%" />
 </p>
 </div>
 </section>
@@ -43,9 +779,8 @@ Ciao
 <script src="./reveal.js/dist/reveal.js"></script>
 <script src="./reveal.js/plugin/math/math.js"></script>
 <script src="./reveal.js/plugin/markdown/markdown.js"></script>
+<script src="./reveal.js/plugin/highlight/highlight.js"></script>
 <script src="./reveal.js/plugin/notes/notes.js"></script>
-<script src="./reveal.js/plugin/search/search.js"></script>
-<script src="./reveal.js/plugin/zoom/zoom.js"></script>
 <script>
 // Full list of configuration options available here:
 // https://github.com/hakimel/reveal.js#configuration
@@ -53,13 +788,13 @@ Reveal.initialize({
 
 controls: true,
 progress: true,
-history: false,
+history: true,
 center: true,
-slideNumber: 'c',
+slideNumber: 't',
 rollingLinks: false,
 keyboard: true,
 mouseWheel: false,
-fragmentInURL: false,
+fragmentInURL: true,
 hashOneBasedIndex: false,
 pdfSeparateFragments: true,
 overview: true,
@@ -70,7 +805,7 @@ transition: 'convex',
 transitionSpeed: 'default',
 
 // Plugins with reveal.js 4.x
-plugins: [ RevealMath, RevealMarkdown, RevealNotes, RevealSearch, RevealZoom ],
+plugins: [ RevealMath, RevealMarkdown, RevealHighlight, RevealNotes ],
 
 // Optional libraries used to extend reveal.js
 dependencies: [
